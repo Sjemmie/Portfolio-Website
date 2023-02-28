@@ -1,4 +1,6 @@
-import smtplib, ssl,os
+import os
+import smtplib
+import ssl
 
 
 def send_email(message):

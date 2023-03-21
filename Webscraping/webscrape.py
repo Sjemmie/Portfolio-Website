@@ -2,8 +2,10 @@ import requests
 import selectorlib
 from sendmail import send_email
 import time
+import sqlite3
 
 URL = "https://programmer100.pythonanywhere.com/tours/"
+connection = sqlite3.connect("data.db")
 
 
 def scrape(url):
@@ -20,13 +22,21 @@ def extract(source):
 
 
 def store(extracted):
-    with open("data.txt", "a") as file:
-        file.write(extracted + "\n")
+    data = extracted.split(",")
+    data = [item.strip() for item in data]
+    cursor = connection.cursor()
+    cursor.execute("INSERT INTO events VALUES(?,?,?)", data)
+    connection.commit()
 
 
 def read(extracted):
-    with open("data.txt", "r") as file:
-        return file.read()
+    row = extracted.split(",")
+    row = [item.strip() for item in row]
+    band, city, date = row
+    cursor = connection.cursor()
+    cursor.execute("SELECT * FROM events WHERE band=? AND city=? and date=?", (band, city, date))
+    rows = cursor.fetchall()
+    return rows
 
 
 if __name__ == "__main__":
@@ -34,9 +44,10 @@ if __name__ == "__main__":
         scraped = scrape(URL)
         extracted = extract(scraped)
         print(extracted)
-        content = read(extracted)
+
         if extracted != "No upcoming tours":
-            if extracted not in content:
+            row = read(extracted)
+            if not row:
                 send_email(extracted)
                 store(extracted)
         time.sleep(2)
